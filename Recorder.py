@@ -32,10 +32,9 @@ def FinalText(text):
         The input text is from a live recording. It contains filler words ("um", "ah", "like"), professor stumbles, mid-sentence corrections, and phonetic corruptions of technical terms (e.g., mishearing code characters, math symbols, or software commands).
 
         ### PROCESSING INSTRUCTIONS:
-        1. **Filter Audio Noise:** Remove all verbal filler, false starts, and casual conversational tangents that do not contribute to the academic material.
-        2. **Technical Translation:** Actively look for phonetically mangled technical terms, equations, or syntax and fix them based on the course context (e.g., if it sounds like code, format it as proper code syntax; if it sounds like a command-line tool, translate it to its valid UNIX/Bash form).
-        3. **Extract Actionable Items:** If the professor begins discussing an assignment, exam, deadline, or homework specification mid-lecture, isolate that information and format it clearly.
-        4. **Maintain Original Intent:** Fix the grammar, punctuation, and clarity, but never alter the actual instructions, numbers, dates, or logical requirements stated by the instructor.
+        1. **Technical Translation:** Actively look for phonetically mangled technical terms, equations, or syntax and fix them based on the course context (e.g., if it sounds like code, format it as proper code syntax; if it sounds like a command-line tool, translate it to its valid UNIX/Bash form).
+        2. **Extract Actionable Items:** If the professor begins discussing an assignment, exam, deadline, or homework specification mid-lecture, isolate that information and format it clearly.
+        3. **Maintain Original Intent:** Fix the grammar, punctuation, and clarity, but never alter the actual instructions, numbers, dates, or logical requirements stated by the instructor.
 
         ### OUTPUT STRUCTURE REQUIREMENTS:
         Organize the cleaned lecture content into a logical, highly scannable Markdown layout using:
