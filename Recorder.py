@@ -158,7 +158,7 @@ with sr.Microphone() as source:
 
                         OuterDir = Path("SummaryText")
                     
-                        filePath = OuterDir/(nameText+"--summarized.txt")
+                        filePath = OuterDir/(nameText+"--summary.txt")
 
                         with open(filePath,'w',encoding="utf-8") as file:
                             file.write(FinalTextOutput)
