@@ -1,0 +1,18 @@
+ "CSC-335 team project completed by Monday, May 4, 2026, at 11:59 PM. For the rest of the term, you will be working on a team project to accomplish... "
+ Hello, teams will be composed of four students. We will be working using an agile-style approach.
+ The project's final grade will be based on 60% of the actual software artifact you produce and 40% upon your participation in, and success with, the software development process we outline in class and below. Submission deadline is Thursday.
+ "to 1026."
+ "answer"
+ You're both a team of four members, and one of the projects below; please sign using the Google Sheet.
+ And on D2L, when we see the distribution of project selection.
+ "Who will act as the stakeholder for your product? They are the ones you will ask."
+ knocking on your progress.
+ Minute check-ins are to be scheduled at your own time.
+ sign-up sheet to coordinate your group meeting
+ The check-ins will be held as weekly stand-up meetings, in the Scrum style. They will minimally...
+ "What could be improved in the last sprint? Any potential blocking items?"
+ And the entire grading team will not follow your progress at each of these meetings.
+ Take detailed notes on how my weekly progress went.
+ That should be taken at each sprint planning, sprint review, and sprint retrospective meeting. They will serve as a brief outline of the meeting's content, and should be used both to document the team's progress, as well as keep the team cognizant of any discussions.
+ Great Breakdown Project Minimum Viable Product (MVP), 50% work factor, 10% process - weekly stand-ups, 20% team process documentation, sprint planning, sprint review, sprint retrospective, GitHub.
+ "Proceed with history, etc.; 10% assessment - self-team assessment, presentation; 10% a further breakdown of the requirements is specific to your project choice and is documented."
