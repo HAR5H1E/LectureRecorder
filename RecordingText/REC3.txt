@@ -1,0 +1,92 @@
+CSC 335 Project 2  
+
+June, Monday, 9th February, 2026, by 11:59 PM, GitHub Classroom. 
+
+Colin //, classroom. 
+
+.com/a/uwxwlbue design 
+
+If something you create is used and discarded, effort on the design may be wasted. 
+
+We'll understand what good design and what bad design gets in our way. In this project, we will attempt to validate some of our choices in Project 1 by adding new features to our codebase, and we will bring our project up to a more rigorous standard of coding so we can be sure our...  
+
+What it does as time goes on exceptions and documentation for your next project, you'll be working with the code of Project 1. You'll need to import it into this project. In Eclipse, go to File, Import, General, and pick file system. Then in the next window, use the browse button to navigate to your Project 1 Java files and bring them into the src folder of this project. You'll then proceed to modify those files as needed to complete this project. Testing when writing the code for Project .  
+
+Unit tests are a good way of verifying that our code does what is expected as part of development.  We need to make sure our code works . 
+
+You'll notice a TestMastermindTest class. This class contains several unit test stubs whose job it is to ensure that your program logic works. 
+
+
+
+Adding tests using a cert pro to check your new exceptions as described above Note it's possible even likely that your project one code mixes together the logic of the game mastermind alongside code that interacts with the human user via input and output our unit tests can't enter text into a keyboard scanner class nor can we assert the output of  
+
+What we might call refactoring, your code into a more testable set of classes and methods. 
+
+Range code is used for the purpose of making the code better in ways that do not affect program correctness. This includes renaming a variable or moving code around.  
+
+During refactoring the code, make sure that you have over 90% statement and branch coverage of your code using Ecl.  
+
+As exceptions with testable methods that compute necessary things for our program. 
+
+
+
+are in a different part of the code that we should handle.  
+
+To handle issues of data integrity at runtime is through exceptions. 
+
+Load the base, the rejection of any guess or answer that violates our constraints. We also want to enforce programmatically that people use our ...  
+
+and do not do things like ask for the sixth color of our guess Java already provides several exception classes that we could use such as Illegal Argument Exception and IndexOutOfBoundsException the IllegalArgumentException is very broad however 
+
+
+
+And we distinguish what the cause of the exception might have been so we want to create two new exceptions. 
+
+Startminded Capital LLC 
+
+Capital exception 2. Capital master  
+
+Capital length capital exception 
+
+In case that a method was provided with a guess or answer that contained a color not part of our original six colors, a Mastermind Illegal Color Exception is raised, the capital M A S T E R M...  
+
+An error should be thrown if a guess or answer is  
+
+These should be checked exceptions, and the Mastermind class should handle the exceptions to enforce that the user's input is always valid. 
+
+
+
+The system returns a layer message indicating why the input was illegal. 
+
+
+
+
+and to not count the invalid guess as one of the ten guesses of the game for any other issue  
+
+Use one of the standard Java class library exceptions to report it. As part of your testing, you should add new test cases to your JUnit test suite that check that invalid input results in exceptions being thrown. Use the assert methods, assertions to test. The first project was graded based on a cooperative user. This project will be graded attempting to break your methods. Documentation: we also want to take the time to fully document our program. We looked at free ways to document in this core.  
+
+UML diagrams three.  
+
+In cases, see above, we have started this process by having comments on JUnit test cases, but we can do both of these more formally. We also can document our design via a  [UNCLEAR] 
+
+
+
+Let me know if you'd like me to try transcribing another section!
+You are required to use Java comments for every class and method to describe their purpose in a short introductory sentence.  
+
+Illumination, choices, in a following paragraph, and then to document the way to call our method.  
+
+At param, at return, and at frozen tags where necessary, as part of your submission. 
+
+The older one that shows the generated HTML from your Java.com and UML diagram, we can use UML in... 
+
+First, we can use it to plan our design before we write any code at all. Additionally, we can use it to document what we created up to the fact. For this project, we will document the design of our Mastermind game using...  
+
+to model both the classes of our program and their relations.  
+
+To diagram any of the classes from the Java class library, draw your UML.  
+
+The diagramming tool 
+
+www.draw.io.io when you are working with a lot of data, you need to make sure that your data is organized and structured in a way that makes sense 
+

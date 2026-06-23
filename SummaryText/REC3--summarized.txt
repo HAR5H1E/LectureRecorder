@@ -1,0 +1,48 @@
+# CSC 335 Project 2
+
+## Project Overview and Deadlines
+
+*   **Deadline**: **Monday, 9th February, 2026, by 11:59 PM**
+*   **Submission Platform**: **GitHub Classroom** (Colin //, classroom.com/a/uwxwlbue design)
+*   **Goal**: Validate design choices from Project 1 by adding new features, refactoring code, handling runtime exceptions, and fully documenting the codebase. 
+
+## Importing Project 1 Code
+
+To work on Project 2, you must import your Project 1 code into this project using Eclipse:
+*   Go to **File** > **Import** > **General** > **File System**.
+*   Click the **Browse** button to navigate to your Project 1 Java files.
+*   Import them into the `src` folder of this project.
+*   Modify these files as needed to complete the project requirements.
+
+## Refactoring and Unit Testing
+
+*   **Refactoring**: Modify your code to make it more testable without affecting program correctness. This includes renaming variables, moving code around, and separating the Mastermind game logic from code that interacts with the human user via input/output (such as keyboard scanner classes).
+*   **Unit Tests**: Use the `TestMastermindTest` class, which contains several unit test stubs, to ensure program logic works.
+*   **Coverage Requirement**: Maintain over **90%** statement and branch coverage of your code using Eclipse.
+*   **Test-Driven Robustness**: While Project 1 was graded based on a cooperative user, Project 2 will be graded by attempting to break your methods. You must add new test cases using JUnit assertions to check that invalid inputs result in exceptions being thrown.
+
+## Exception Handling
+
+To handle issues of data integrity at runtime, you must use exceptions to reject any guess or answer that violates game constraints. 
+*   **Checked Exceptions**: Create two new checked exceptions that the `Mastermind` class must handle to enforce valid user input:
+    *   `MastermindIllegalColorException` (raised if a method is provided with a guess or answer containing a color not part of the original six colors).
+    *   Capital exception 2: Capital master Capital length capital exception (raised in case of an invalid guess or answer length).
+*   **Error Handling**:
+    *   If an exception is raised, the system must return a clear message indicating why the input was illegal.
+    *   Do not count invalid guesses as one of the ten allowed guesses in the game.
+    *   For any other issue, use standard Java class library exceptions (such as `IllegalArgumentException` or `IndexOutOfBoundsException`) to report it.
+
+## Documentation and UML Diagrams
+
+### Code Documentation
+*   Use Java comments for every class and method to describe their purpose in a short introductory sentence.
+*   Explain design choices in a following paragraph.
+*   Document how to call methods using **at param**, **at return**, and **at frozen** tags where necessary.
+*   Generate HTML documentation from your Java files.
+
+### UML Diagrams
+*   Document your Mastermind game design via a [UNCLEAR]
+*   Use UML to model both the classes of your program and their relations.
+*   Use UML to plan your design before writing code, as well as to document what you have created after the fact.
+*   Do not diagram any classes from the Java class library.
+*   Use the diagramming tool **www.draw.io** to ensure your data is organized and structured logically.

@@ -73,18 +73,22 @@ def FinalText(text):
     load_dotenv()
 
     client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-    interaction = client.interactions.create(
-         model = "gemini-2.5-flash",
-         input = prompt
-    )
 
-    """
-    response = LLM.generate(
-          model="qwen2.5-coder:7b",
-          prompt=prompt
+    try:
+        interaction = client.interactions.create(
+            model = "gemini-3.1-flash-lite",
+            input = prompt,
+            store=False
+        )
+    except Exception as e:
           
-    )
-    """
+          print("overloaded switiching model...Effictevness might be Reduced")
+          interaction = client.interactions.create(
+            model = "gemini-2.5-flash",
+            input = prompt,
+            store = False
+        )
+
 
     FinalText = interaction.output_text
 
@@ -164,7 +168,7 @@ def audioListener():
                     while True:
                         try:
                                 audio = audioInput.listen(source=source,phrase_time_limit=30)
-                                text = audioInput.recognize_whisper(audio, model="base")
+                                text = audioInput.recognize_whisper(audio, model="small")
                                 text = text.lower()
                                 InputQueue.put(text)
 
@@ -175,33 +179,9 @@ def audioListener():
                             pass
 
                         except KeyboardInterrupt:
-                            print("\nStopping the Program")
-                            InputQueue.put(None)
+                            return
 
-                            time.sleep(1.0)
-
-                            if mainText:
-                                print("\nSaving File")
-                                OuterDir = Path("RecordingText")
-                                filePath = OuterDir/(nameText+".txt")
-
-                                with open(filePath,'w',encoding="utf-8") as file:
-                                    file.write(mainText)
-
-                                print("Generating output Summary!!")
-                                FinalTextOutput = FinalText(mainText)
-
-                                OuterDir = Path("SummaryText")
-                            
-                                filePath = OuterDir/(nameText+"--summarized.txt")
-
-                                with open(filePath,'w',encoding="utf-8") as file:
-                                    file.write(FinalTextOutput)
-
-                                print("\nExit")
-
-
-                            break
+        
 
 def main():
     global val,nameText
@@ -210,15 +190,53 @@ def main():
             val = True
             nameText = str(input("Whats the name of saveFile: "))
 
-           
+            
             LLMthread = threading.Thread(
                 target=LLMStart,
                 daemon=True
             )
             LLMthread.start()
             
-
+            
             audioListener()
+
+            
+            print("\nStopping the Program")
+            InputQueue.put(None)
+
+            time.sleep(1.0)
+
+            if mainText:
+                print("\nSaving File")
+                OuterDir = Path("RecordingText")
+                filePath = OuterDir/(nameText+".txt")
+
+                with open(filePath,'w',encoding="utf-8") as file:
+                    file.write(mainText)
+
+                print("Generating output Summary!!")
+            
+                FinalTextOutput = FinalText(mainText)
+
+                OuterDir = Path("SummaryText")
+                            
+                filePath = OuterDir/(nameText+"--summarized.txt")
+
+                with open(filePath,'w',encoding="utf-8") as file:
+                    file.write(FinalTextOutput)
+
+                print("\nExit")
+            
+            """
+            with open("RecordingText/REC3.txt",'r',encoding="utf-8") as file:
+                    text = file.read()
+
+            m = FinalText(text)
+            with open("test.txt",'w',encoding="utf-8") as file:
+                    file.write(m)
+
+            """
+
             
             
 
