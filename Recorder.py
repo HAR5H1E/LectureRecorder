@@ -167,8 +167,9 @@ def audioListener():
                     
                     while True:
                         try:
+                                
                                 audio = audioInput.listen(source=source,phrase_time_limit=30)
-                                text = audioInput.recognize_whisper(audio, model="small")
+                                text = audioInput.recognize_whisper(audio, model="base")
                                 text = text.lower()
                                 InputQueue.put(text)
 
@@ -184,10 +185,9 @@ def audioListener():
         
 
 def main():
-    global val,nameText
-    isTextSave = str(input("Are you saving this text ?(Y/N): "))
-    if isTextSave.lower() == "y":
-            val = True
+                
+            global nameText
+            
             nameText = str(input("Whats the name of saveFile: "))
 
             
@@ -227,15 +227,15 @@ def main():
 
                 print("\nExit")
             
-            """
-            with open("RecordingText/REC3.txt",'r',encoding="utf-8") as file:
-                    text = file.read()
+                """
+                with open("RecordingText/REC3.txt",'r',encoding="utf-8") as file:
+                        text = file.read()
 
-            m = FinalText(text)
-            with open("test.txt",'w',encoding="utf-8") as file:
-                    file.write(m)
+                m = FinalText(text)
+                with open("test.txt",'w',encoding="utf-8") as file:
+                        file.write(m)
 
-            """
+                """
 
             
             
