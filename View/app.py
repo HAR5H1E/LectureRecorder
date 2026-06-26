@@ -44,10 +44,14 @@ class BottomFrame(ctk.CTkFrame):
     def __init__(self,parent,TextBox,**kwargs):
         super().__init__(parent,**kwargs)
         self.audioQueue = Queue()
+        self.TextBoxQueueIn = Queue()
+        self.TextBoxQueueOut = Queue()
         self.Buttons()
         self.TextBox = TextBox
         self.isPause = threading.Event()
+        self.BreakCheck = False
         self.STTEngine = None
+        self.SummaryEngine = None
         self.exit_signal = None
         self.check()
 
@@ -61,6 +65,7 @@ class BottomFrame(ctk.CTkFrame):
                 args=(self.audioQueue,self.exit_signal,self.isPause),
                 daemon=True)
             self.STTEngine.start()
+            self.BreakCheck = False
 
     def Pause(self):
         if self.isPause.is_set():
@@ -70,18 +75,56 @@ class BottomFrame(ctk.CTkFrame):
 
     def Stop(self):
         self.exit_signal.set()
+        print("Oh i am putting the text in :)")
+        self.TextBoxQueueIn.put(self.TextBox.get("1.0","end-1c"))
+        self.SummaryEngine = threading.Thread(
+            target = TextListener.LLMSummerizer,
+            args=(self.TextBoxQueueIn,self.TextBoxQueueOut,),
+            daemon=True
+        )
+        self.SummaryEngine.start()
+        self.GetSummary()
+
+
+    def GetSummary(self):
+        try:
+            while True:
+                SummaryText = self.TextBoxQueueOut.get_nowait()
+                print("Oh Hey A response")
+                self.TextBox.configure(state="normal")
+                self.TextBox.delete("0.0","end")
+                self.TextBox.insert("end-1c",SummaryText)
+                self.TextBox.configure(state="disabled")
+                self.BreakCheck = True
+
+        except queue.Empty:
+            pass
+
+        finally:
+
+            if not self.BreakCheck:
+                self.after(10,self.GetSummary)
+            else:
+                print("Oh hey I am Stopping :)")
+
+
+
+
+
+
 
     def check(self):
         try:
            while True:
                text = self.audioQueue.get_nowait()
-               if text == True:
-                    #print("Yup Recieved Stoppping Now")
+               self.audioQueue.task_done()
+               if text is True:
+                    
                     self.TextBox.configure(state="normal") 
-               elif text ==False:
+               elif text is False:
                     self.TextBox.configure(state="disabled")
                else:
-                    #print("I got a Text")
+                    
                     self.TextBox.configure(state="normal")
                     self.TextBox.insert("end-1c",text)
                     self.TextBox.configure(state="disabled")

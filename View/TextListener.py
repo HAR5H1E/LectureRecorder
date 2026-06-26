@@ -1,34 +1,41 @@
+import os
 import speech_recognition as sr
 import ollama as LLM
 import queue
-from queue import Queue
 import threading
 import whisper
+from queue import Queue
+from google import genai
+from pathlib import Path
+from dotenv import load_dotenv
+
 
 smoothAudio = Queue()
 
 def startLLM(stopEvent,audioQueue,isPause):
     try: 
         while not stopEvent.is_set():
+            if isPause.is_set():
+                    audioQueue.put(True)
             text = smoothAudio.get()
+            smoothAudio.task_done()
             smoothText = ReadContext(text)
             if smoothText is not None:
                     audioQueue.put(smoothText)
-                    audioQueue.task_done()
             if isPause.is_set():
                     audioQueue.put(True)
-                    audioQueue.task_done()
             else:
                 audioQueue.put(False)
-                audioQueue.task_done() 
-
+        
     except queue.Empty:
-        return
+        pass
+    
+
     
     
 def ReadContext(Text):
 
-    print("Wow A text: "+Text)
+    
     if Text.strip():
         prompt=f"""You are a transcription correction assistant for university lectures.
 
@@ -109,4 +116,83 @@ def AudioListener(audioQueue,exitSignal,isPause):
     stopEvent.set()
 
 
+def LLMSummerizer(TextBoxQueueIn,TextBoxQueueout):
+        FinalText = TextBoxQueueIn.get()
+        if FinalText.strip():
+            ParentDir = Path(__file__).resolve().parent
+            scriptDir = ParentDir.parent
+            envDir = scriptDir/ ".env"
+            load_dotenv(envDir)
+            client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+
+            prompt = f"""You are a Markdown document formatter for university lecture notes.
+
+            ## STEP 1 - INFER CONTEXT:
+            Before formatting, read the entire transcript and identify:
+            - What subject/field is this lecture about?
+            - What are the key topics covered?
+            - Are there assignments, deadlines, or grading breakdowns?
+            - Are there any [UNCLEAR] or [CORRECTED] flags from the previous pass?
+            - If there are any words that seem to not be inline with the context of the previous part of the test or later part remove it 
+            Use this to decide the document structure before writing anything.
+
+            ## STEP 2 - FORMAT:
+            Transform the corrected transcript into structured Markdown.
+            - # for main title
+            - ## for major sections  
+            - ### for subsections
+            - **bold** for deadlines, key terms, percentages
+            - Regular bullet lists only
+            - Code blocks ONLY for actual code or commands
+
+            ## STEP 3 - VALIDATE:
+            Before outputting, check:
+            - Do all percentage breakdowns add up to 100%? 
+            If not add **[VERIFY - incomplete breakdown]**
+            - Are all [UNCLEAR] flags preserved and not guessed?
+            - Are all dates and deadlines present?
+            - Did you add any content not in the input? 
+            If yes remove it
+
+            ## STRICT RULES:
+            - Do NOT correct errors — mistral already did that
+            - Do NOT add closing remarks or encouragement
+            - Do NOT wrap bullet lists in code blocks
+            - Do NOT hallucinate content
+            - Preserve all [UNCLEAR] and [CORRECTED] flags exactly as they appear
+
+            ## INPUT:
+            {FinalText}
+
+            ---
+
+        
+
+            Return only the corrected transcript, no explanation.
+            """
+            print("Ok Starting")
+            try:
+                
+                response = client.interactions.create(
+                    model = "gemini-3.1-flash-lite",
+                    input = prompt,
+                    store=False,
+                    generation_config={
+                        "temperature":0
+                    }
+                )
+            except Exception as e:
+                response = client.interactions.create(
+                    model = "gemini-2.5-flash",
+                    input = prompt,
+                    store=False,
+                    generation_config={
+                        "temperature":0
+                    }
+                )
+
+            print("Sending Response")
+            TextBoxQueueout.put(response.output_text)
+
+        return 
 
