@@ -36,6 +36,19 @@ class RightFrame(ctk.CTkFrame):
         super().__init__(parent,**kwargs)
 
         self.grid_propagate(False)
+        self.pack_propagate(False)
+        self.textBox = ctk.CTkTextbox(self,width=220,height=500)
+        self.textBox.pack(side="top",padx=10,pady=10,expand = False)
+
+        self.QueLabel = ctk.CTkLabel(self,width=220,height=5,text="Ask a Question")
+        self.QueLabel.pack(side="top",expand = False)
+
+        self.chatBox = ctk.CTkTextbox(self,width=220,height=55)
+        self.chatBox.pack(side="top",padx=10,pady=10,fill="both",expand = True)
+
+        self.button = ctk.CTkButton(self,width = 200,height=55)
+        self.button.pack(side="bottom",padx=10,pady=10,fill="x")
+        
 
 
 
@@ -175,14 +188,16 @@ class App(ctk.CTk):
         self.rightFrame_1.pack(side="right",padx=10,pady=10,fill='y',expand=False)
 
         self.textBox = ctk.CTkTextbox(self,width=700,height=450)
-        self.textBox.pack(side="top",padx=10,pady=10)
+        self.textBox.pack(side="top",padx=10,pady=10,fill="both",expand=True)
         self.textBox.configure(state="disabled")
+
 
         self.bottomFrame= BottomFrame(self,self.textBox,width=700,height=115)
         self.bottomFrame.pack(side="bottom",padx=10,pady=10)
 
         self.recordBar = RecFrame(self,self.bottomFrame,width=700,height=85)
-        self.recordBar.pack(side="top",padx=10,pady=10)
+        self.recordBar.pack(side="top",padx=10,pady=10,fill="both",expand=True)
 
 app = App()
+app.maxsize(1201,701)
 app.mainloop()
