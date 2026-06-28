@@ -11,28 +11,20 @@ from dotenv import load_dotenv
 
 
 smoothAudio = Queue()
+PauseThread = threading.Event()
 
-def startLLM(stopEvent,audioQueue,isPause):
-    try: 
-        while not stopEvent.is_set():
-            if isPause.is_set():
-                    audioQueue.put(True)
-            text = smoothAudio.get()
-            smoothAudio.task_done()
-            smoothText = ReadContext(text)
-            if smoothText is not None:
-                    audioQueue.put(smoothText)
-            if isPause.is_set():
-                    audioQueue.put(True)
-            else:
-                audioQueue.put(False)
-        
-    except queue.Empty:
-        pass
+def startLLM(stopEvent,audioQueue):
+    while not stopEvent.is_set():
+        text = smoothAudio.get()
+        smoothAudio.task_done()
+        if text == 1:
+             break
+        smoothText = ReadContext(text)
+        if smoothText is not None:
+            audioQueue.put(smoothText)
     
-
-    
-    
+    print("OK")
+    audioQueue.put(1)
 def ReadContext(Text):
 
     
@@ -85,35 +77,43 @@ def ReadContext(Text):
         return response['response']
     return None
 
-def AudioListener(audioQueue,exitSignal,isPause):
-
+def AudioListener(audioQueue,exitSignal):
     stopEvent = threading.Event()
     Audio = sr.Recognizer()
     LLMThread = threading.Thread(
         target=startLLM,
-        args=(stopEvent,audioQueue,isPause),
+        args=(stopEvent,audioQueue,),
         daemon=True
     )
     LLMThread.start()
     
+    with sr.Microphone() as source:
+        Audio.adjust_for_ambient_noise(source=source,duration=0.4)
+        while not exitSignal.is_set():
+                try:    
+                        
+                        Voice = Audio.listen(source=source,phrase_time_limit=15)
+                        if not exitSignal.is_set():
+                            
+                            AudioText = Audio.recognize_whisper(Voice,model="base")
+                            smoothAudio.put(AudioText)
+                        else:
+                            print("oop stop")
+                            smoothAudio.put(1)
+                            stopEvent.set()
 
-    while not exitSignal.is_set():
-        with sr.Microphone() as source:
-            try:    
-                if not isPause.is_set():
-                    Audio.adjust_for_ambient_noise(source=source,duration=0.4)
-                    Voice = Audio.listen(source=source,phrase_time_limit=30)
-                    AudioText = Audio.recognize_whisper(Voice,model="base")
-                    smoothAudio.put(AudioText)
 
 
-            except sr.RequestError:
-                pass
-            except sr.UnknownValueError:
-                pass
+                except sr.RequestError:
+                    pass
+                except sr.UnknownValueError:
+                    pass
+                except sr.WaitTimeoutError:
+                     pass
 
-    
+    smoothAudio.put(1)
     stopEvent.set()
+    print("I am Stopin?")
 
 
 def LLMSummerizer(TextBoxQueueIn,TextBoxQueueout):
