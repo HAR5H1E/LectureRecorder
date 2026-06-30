@@ -109,9 +109,8 @@ def AudioListener(audioQueue,exitSignal):
         Audio.adjust_for_ambient_noise(source=source,duration=0.4)
         while not exitSignal.is_set():
                 try:    
-                        
-                        Voice = Audio.listen(source=source,phrase_time_limit=15)
                         if not exitSignal.is_set():  
+                            Voice = Audio.listen(source=source,phrase_time_limit=15)
                             AudioText = Audio.recognize_whisper(Voice,model="base")
                             smoothAudio.put(AudioText)  
                         else:

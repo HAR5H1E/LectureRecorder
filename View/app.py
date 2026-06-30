@@ -15,19 +15,22 @@ comrecVar = None
 RecComboBox = None
 CurrFile = None
 
-
 ParentDir = Path(__file__).resolve().parent
 scriptDir = ParentDir.parent
 RecText = scriptDir/ "SummaryText"
 
 class TabView(ctk.CTkTabview):
-    def __init__(self, master, **kwargs):
+    def __init__(self, master ,ChoiceMenu, **kwargs):
         super().__init__(master, **kwargs)
         self.add("RecView")
         self.add("SaveView")
         self.RecBox = None
         self.SaveBox = None
+        self.ChoiceMenu = ChoiceMenu
+        self.repeatisTab=False
+        self.repeatisNTab = False
         self.Tabs()
+        self.checkTab()
     
     def Tabs(self):
 
@@ -41,6 +44,7 @@ class TabView(ctk.CTkTabview):
 
         self.Clear = ctk.CTkButton(self.SaveBox,text="Clear",width=75,height=25,fg_color="transparent",
                                        hover_color="black",command=self.clear)
+        
         self.Edit = ctk.CTkButton(self.SaveBox,text="Edit",width=75,height=25,fg_color="transparent",
                                        hover_color="black",command=self.edit)
         
@@ -69,7 +73,10 @@ class TabView(ctk.CTkTabview):
     
 
     def edit(self):
-        self.SaveBox.configure(state="normal")
+        if (self.SaveBox.get("1.0","end-1c")):
+            self.SaveBox.configure(state="normal")
+        else:
+            messagebox.showinfo("NOT Text Available","TextBox Empty")
 
     def save(self):
         if self.SaveBox.get("0.0","end").strip():
@@ -88,6 +95,22 @@ class TabView(ctk.CTkTabview):
         self.SaveBox.delete("0.0","end")
         self.SaveBox.configure(state="disabled")
 
+    def checkTab(self):
+        if self.ChoiceMenu.select:
+            if self.get() != "SaveView":
+                    self._segmented_button._buttons_dict["SaveView"].configure(text_color="yellow")
+            else:
+                    self.ChoiceMenu.select = False
+        else:
+           
+            self._segmented_button._buttons_dict["SaveView"].configure(text_color="white")
+
+         
+        self.after(350,self.checkTab)
+
+    
+
+
 
     
 
@@ -101,8 +124,13 @@ class innerLeftFrame(ctk.CTkFrame):
         self.Combolist = ["-"]
         self.textBox = TextBoxValue
         self.Rectext=""
-        RecComboBox=self.RecBox = ctk.CTkOptionMenu(self,width=180,values=["-"]+os.listdir(RecText),variable=self.ComboRecVar,command = self.selectOption)
+        RecComboBox=self.RecBox = ctk.CTkOptionMenu(self,
+                                                    width=180,
+                                                    values=["-"]+os.listdir(RecText),
+                                                    variable=self.ComboRecVar,
+                                                    command = self.selectOption)
         self.RecBox.grid(row=0,column=0,padx=20,pady=20,sticky="ne")
+        self.select = False
 
     def selectOption(self,choice):
         global CurrFile
@@ -121,6 +149,9 @@ class innerLeftFrame(ctk.CTkFrame):
                 TextBoxValue.configure(state="normal")
                 TextBoxValue.insert("0.0",TEXT)
                 TextBoxValue.configure(state="disabled")
+            self.select = True
+
+            
 
 class LeftFrame(ctk.CTkFrame):
     def __init__(self,parent,**kwargs):
@@ -257,10 +288,8 @@ class BottomFrame(ctk.CTkFrame):
             comrecVar.set("SummaryNotes")
     
     def edit(self):
-        if (self.TextBox.get("1.0","end-1c")):
-            self.TextBox.configure(state="normal")
-        else:
-            messagebox.showinfo("NOT Text Available","TextBox Empty")
+        self.TextBox.configure(state="normal")
+      
     
     def StopPause(self):
         
@@ -437,11 +466,17 @@ class RecFrame(ctk.CTkFrame):
                 messagebox.showinfo("Didnt name File", "Missing Filename")
 
     def SumStart(self):
-        if self.bottomBar.canSum and self.bottomBar.ENDRECORDING and not self.stateChange:
+        print(self.stateChange)
+        if self.bottomBar.isStop\
+                and self.bottomBar.TextBox.get("1.0","end-1c").strip()\
+                    and not self.stateChange:
+            print("why?")
             self.sumbum.configure(state="normal")
             self.save.configure(state="normal")
             self.stateChange = True
-        elif not self.bottomBar.canSum:
+            
+        elif self.bottomBar.isStop\
+                and not self.bottomBar.TextBox.get("1.0","end-1c").strip():
             self.sumbum.configure(state="disabled")
             self.save.configure(state="disabled")
             self.stateChange = False
@@ -512,7 +547,7 @@ class App(ctk.CTk):
         self.rightFrame_1 = RightFrame(self,width=250)
         self.rightFrame_1.pack(side="right",padx=10,pady=10,fill='y',expand=False)
 
-        self.tabview= TabView(self,width=700,height=400)
+        self.tabview= TabView(self,self.leftFrame_1.innerFrame,width=700,height=400)
         self.tabview.pack(side="top",fill="x")
 
         self.textBox = self.tabview.getRec()
