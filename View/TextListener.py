@@ -12,8 +12,10 @@ from dotenv import load_dotenv
 
 smoothAudio = Queue()
 PauseThread = threading.Event()
-
+History = []
+count = 1
 def startLLM(stopEvent,audioQueue):
+    global History,count
     while not stopEvent.is_set():
         text = smoothAudio.get()
         smoothAudio.task_done()
@@ -22,12 +24,21 @@ def startLLM(stopEvent,audioQueue):
         smoothText = ReadContext(text)
         if smoothText is not None:
             audioQueue.put(smoothText)
-    
-    print("OK")
+            History.append({f"AudioChunk " : count, "TextRecording":smoothText})
+            count+=1
     audioQueue.put(1)
+    History = []
 def ReadContext(Text):
-
-    
+    global History
+    CurrHis = []
+    if History == []:
+         CurrHis = [{f"AudioChunk " : 0, "TextRecording":""}]
+    else:
+        if len(History) >= 3:
+            CurrHis = History[-3:]
+        else:
+            CurrHis = History
+    print(CurrHis)
     if Text.strip():
         prompt=f"""You are a transcription correction assistant for university lectures.
 
@@ -63,6 +74,12 @@ def ReadContext(Text):
                     - Any correction you're unsure about → mark as [CORRECTED: original]
                     so the user can verify
 
+                    ## Step 4 - History
+                    - Use The History context from the last Few Recordings to 
+                    help better smooth out the current text
+
+                    History:
+                    {CurrHis}
 
                     Raw transcript:
                     {Text}
@@ -78,6 +95,7 @@ def ReadContext(Text):
     return None
 
 def AudioListener(audioQueue,exitSignal):
+    global count
     stopEvent = threading.Event()
     Audio = sr.Recognizer()
     LLMThread = threading.Thread(
@@ -93,12 +111,10 @@ def AudioListener(audioQueue,exitSignal):
                 try:    
                         
                         Voice = Audio.listen(source=source,phrase_time_limit=15)
-                        if not exitSignal.is_set():
-                            
+                        if not exitSignal.is_set():  
                             AudioText = Audio.recognize_whisper(Voice,model="base")
-                            smoothAudio.put(AudioText)
+                            smoothAudio.put(AudioText)  
                         else:
-                            print("oop stop")
                             smoothAudio.put(1)
                             stopEvent.set()
 
@@ -111,7 +127,10 @@ def AudioListener(audioQueue,exitSignal):
                 except sr.WaitTimeoutError:
                      pass
 
+
     smoothAudio.put(1)
+    count = 0
+    
     stopEvent.set()
     print("I am Stopin?")
 

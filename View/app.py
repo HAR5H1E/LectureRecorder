@@ -1,19 +1,126 @@
 import customtkinter as ctk
 import threading
+import os
 import TextListener
 import queue
 from queue import Queue
 from tkinter import messagebox
+from pathlib import Path
 import time
 
+TextBoxValue = None
+saveButton = None
+sumButton = None
+comrecVar = None
+RecComboBox = None
+CurrFile = None
 
+
+ParentDir = Path(__file__).resolve().parent
+scriptDir = ParentDir.parent
+RecText = scriptDir/ "SummaryText"
+
+class TabView(ctk.CTkTabview):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+        self.add("RecView")
+        self.add("SaveView")
+        self.RecBox = None
+        self.SaveBox = None
+        self.Tabs()
+    
+    def Tabs(self):
+
+        self.RecBox = ctk.CTkTextbox(self.tab("RecView"),width=700,height=400)
+        self.RecBox.pack(side="top",fill="both",expand=True)
+        self.RecBox.configure(state="disabled")
+
+        self.SaveBox =  ctk.CTkTextbox(self.tab("SaveView"),width=700,height=400)
+        self.SaveBox.pack(side="top",fill="both",expand=True)
+        self.SaveBox.configure(state="disabled")
+
+        self.Clear = ctk.CTkButton(self.SaveBox,text="Clear",width=75,height=25,fg_color="transparent",
+                                       hover_color="black",command=self.clear)
+        self.Edit = ctk.CTkButton(self.SaveBox,text="Edit",width=75,height=25,fg_color="transparent",
+                                       hover_color="black",command=self.edit)
+        
+        self.Save = ctk.CTkButton(self.SaveBox,text="Save",width=75,height=25,fg_color="transparent",
+                                       hover_color="black",command=self.save)
+        self.Delete = ctk.CTkButton(self.SaveBox,text="Delete",width=75,height=25,fg_color="transparent",
+                                       hover_color="black",command=self.delete)
+        
+        self.Edit.place(x=435,y=375)
+        self.Clear.place(x=510,y=375)
+        self.Save.place(x=585,y=375)
+        self.Delete.place(x=660,y=375)
+        
+
+    
+    def getRec(self):
+        return self.RecBox
+
+    def getSave(self):
+        return self.SaveBox
+    
+    def clear(self):
+        self.SaveBox.configure(state="normal")
+        self.SaveBox.delete("0.0","end")
+        self.SaveBox.configure(state="disabled")
+    
+
+    def edit(self):
+        self.SaveBox.configure(state="normal")
+
+    def save(self):
+        if self.SaveBox.get("0.0","end").strip():
+            with open(CurrFile,"w") as file:
+                file.write(self.SaveBox.get("0.0","end"))
+        else:
+            RecComboBox.configure(values = ["-"]+os.listdir(RecText))
+            os.remove(CurrFile)
+            comrecVar.set("SummaryNotes")
+
+    def delete(self):
+        os.remove(CurrFile)
+        RecComboBox.configure(values = ["-"]+os.listdir(RecText))
+        comrecVar.set("SummaryNotes")
+        self.SaveBox.configure(state="normal")
+        self.SaveBox.delete("0.0","end")
+        self.SaveBox.configure(state="disabled")
+
+
+    
 
 class innerLeftFrame(ctk.CTkFrame):
     def __init__(self,parent,**kwargs):
         super().__init__(parent,**kwargs)
+        global TextBoxValue,comrecVar,RecText,RecComboBox
         self.grid_propagate(False)
+        self.grid_rowconfigure(0,weight=0)
+        comrecVar=self.ComboRecVar = ctk.StringVar(value="SummaryNotes")
+        self.Combolist = ["-"]
+        self.textBox = TextBoxValue
+        self.Rectext=""
+        RecComboBox=self.RecBox = ctk.CTkOptionMenu(self,width=180,values=["-"]+os.listdir(RecText),variable=self.ComboRecVar,command = self.selectOption)
+        self.RecBox.grid(row=0,column=0,padx=20,pady=20,sticky="ne")
 
+    def selectOption(self,choice):
+        global CurrFile
+        if choice == "-":
+            self.ComboRecVar.set("SummaryNotes")
+            TextBoxValue.configure(state="normal")
+            TextBoxValue.delete("0.0","end")
+            TextBoxValue.configure(state="disabled")
+        else:
 
+            TextBoxValue.configure(state="normal")
+            TextBoxValue.delete("0.0","end")
+            CurrFile = option = RecText/choice
+            with open(option,'r') as file:
+                TEXT=file.read()
+                TextBoxValue.configure(state="normal")
+                TextBoxValue.insert("0.0",TEXT)
+                TextBoxValue.configure(state="disabled")
 
 class LeftFrame(ctk.CTkFrame):
     def __init__(self,parent,**kwargs):
@@ -28,7 +135,7 @@ class LeftFrame(ctk.CTkFrame):
         self.TextLabel.grid(row = 0,column = 0,padx = 20, pady=20,sticky ="n")
         self.TextLabel.configure(text="LECRec")
 
-        self.innerFrame = innerLeftFrame(self,width=200)
+        self.innerFrame = innerLeftFrame(self,width=225)
         self.innerFrame.grid(row = 1,column = 0,padx = 20, pady=20,sticky="ns")
     
 
@@ -57,13 +164,13 @@ class BottomFrame(ctk.CTkFrame):
 
     def __init__(self,parent,TextBox,**kwargs):
         super().__init__(parent,**kwargs)
+        global HasStopped,RecComboBox
         self.audioQueue = Queue()
-        self.Buttons()
         self.TextBox = TextBox
         self.STTEngine = None
         self.SummaryEngine = None
         self.exit_signal = threading.Event()
-        self.ENDRECORDING = False
+        self.ENDRECORDING = True
         self.playOn = False
         self.isPause = False
         self.isStop = True
@@ -73,9 +180,13 @@ class BottomFrame(ctk.CTkFrame):
         self.seconds = None
         self.Millisec = None
         self.Clear = None
+        self.Edit = None
+        HasStopped = self.isStop
         self.default_fg = ctk.ThemeManager.theme["CTkButton"]["fg_color"]
         self.default_hover = ctk.ThemeManager.theme["CTkButton"]["hover_color"]
+        self.Buttons()
         self.check()
+        self.editClearButtons()
 
     def Play(self):
             
@@ -126,8 +237,6 @@ class BottomFrame(ctk.CTkFrame):
             self.play.configure(text="Play", state="normal",fg_color = self.default_fg)
             self.pause.configure(text="Pause", state="normal",fg_color = self.default_fg)
             self.playTime = 0
-            self.Clear = ctk.CTkButton(self.TextBox,text="Clear",width=75,height=25,fg_color="transparent",
-                                       hover_color="black",command=self.clear)
             self.StopAnimation()
             if self.isPause: 
                 self.stop.configure(text="Processing Final Audio...",fg_color="darkred",state="disabled")
@@ -140,15 +249,34 @@ class BottomFrame(ctk.CTkFrame):
             messagebox.showinfo("NOT Recording","You haven't pressed Play Yet")
 
     def clear(self):
-        self.TextBox.configure(state="normal")
-        self.TextBox.delete("0.0","end")
-        self.TextBox.configure(state="disabled")
+        global sumButton,saveButton
+        if not self.isPause:
+            self.TextBox.configure(state="normal")
+            self.TextBox.delete("0.0","end")
+            self.TextBox.configure(state="disabled")
+            comrecVar.set("SummaryNotes")
+    
+    def edit(self):
+        if (self.TextBox.get("1.0","end-1c")):
+            self.TextBox.configure(state="normal")
+        else:
+            messagebox.showinfo("NOT Text Available","TextBox Empty")
     
     def StopPause(self):
         
         self.stop.configure(text="Stop",state="normal",fg_color=self.default_fg)
-        
         self.isPause = False
+        
+    def editClearButtons(self):
+        if self.ENDRECORDING:
+            self.Edit.place(x=560,y=375)
+            if not self.isPause:
+                self.Clear.place(x=635,y=375)
+        else:
+            self.Edit.place_forget()
+            self.Clear.place_forget()
+
+        self.after(10,self.editClearButtons)
         
 
 
@@ -157,7 +285,8 @@ class BottomFrame(ctk.CTkFrame):
                 self.stop.configure(text="Stop",state="normal",fg_color=self.default_fg)
                 self.play.configure(state="normal")
                 self.pause.configure(state ="normal")
-                self.Clear.place(x=550,y=425)
+                self.Edit.place(x=560,y=375)
+                self.Clear.place(x=635,y=375)
                 self.canSum = True
                 return 
 
@@ -181,12 +310,7 @@ class BottomFrame(ctk.CTkFrame):
         self.stop.configure(state="disabled")
 
         self.after(10,self.PauseAnimation)
-
-    
-
         
-        
-
     def check(self):
         try:
            while True:
@@ -221,6 +345,11 @@ class BottomFrame(ctk.CTkFrame):
         self.pause.grid(row=1,column=1,padx=20,pady=20,sticky="ns")
         self.stop.grid(row=1,column=2,padx=20,pady=20,sticky="ns")
 
+        self.Clear = ctk.CTkButton(self.TextBox,text="Clear",width=75,height=25,fg_color="transparent",
+                                       hover_color="black",command=self.clear)
+        self.Edit = ctk.CTkButton(self.TextBox,text="Edit",width=75,height=25,fg_color="transparent",
+                                       hover_color="black",command=self.edit)
+
 class RecFrame(ctk.CTkFrame):
     def __init__(self,parent,bottomBar,**kwargs):
         super().__init__(parent,**kwargs)
@@ -231,22 +360,25 @@ class RecFrame(ctk.CTkFrame):
         self.TotalPauseTime = 0
         self.CurrPauseTime = 0
         self.Minutes = 0
+        self.fileName = None
         self.Sec = None
         self.Mil = None
         self.inFrame()
     
     def inFrame(self):
+        global saveButton,sumButton
         self.grid_propagate(False)
         self.pack_propagate(False)
 
         
         self.fileName = ctk.CTkEntry(self,width=200)
-        self.save = ctk.CTkButton(self,width=200,text="Save",state="disabled")
+        saveButton = self.save = ctk.CTkButton(self,width=200,text="Save",state="disabled",command=self.Save)
 
 
         self.recTimer = ctk.CTkLabel(self,width=150,height=70,text="00:00.00",fg_color="black",bg_color="transparent",corner_radius=50)
+     
 
-        self.sumbum = ctk.CTkButton(self,width=200,text="Summarize",command=self.SummRizer,state="disabled")
+        sumButton = self.sumbum = ctk.CTkButton(self,width=200,text="Summarize",command=self.SummRizer,state="disabled")
         self.stateChange = False
 
 
@@ -293,6 +425,16 @@ class RecFrame(ctk.CTkFrame):
                 self.recTimer.configure(text="00:00.00",fg_color="black")
 
         self.after(100,self.PlayRec)
+    
+    def Save(self):
+            if self.fileName.get():
+                with open((RecText/self.fileName.get()).with_suffix(".txt"),'w') as file:
+                    file.write(self.bottomBar.TextBox.get("1.0","end-1c"))
+                
+                RecComboBox.configure(values = ["-"]+os.listdir(RecText))
+                self.fileName.delete(0,"end")
+            else:
+                messagebox.showinfo("Didnt name File", "Missing Filename")
 
     def SumStart(self):
         if self.bottomBar.canSum and self.bottomBar.ENDRECORDING and not self.stateChange:
@@ -318,7 +460,6 @@ class RecFrame(ctk.CTkFrame):
 
 
     def sequencer(self):
-        print("HoLi")
         if self.bottomBar.STTEngine.is_alive():
             self.bottomBar.STTEngine.join()
     
@@ -326,15 +467,17 @@ class RecFrame(ctk.CTkFrame):
         self.BreakCheck = False
         if self.bottomBar.ENDRECORDING:
             print("Starting")
-
-            self.TextBoxQueueIn.put(self.bottomBar.TextBox.get("1.0","end-1c"))
-            self.SummaryEngine = threading.Thread(
-                target = TextListener.LLMSummerizer,
-                args=(self.TextBoxQueueIn,self.TextBoxQueueOut,),
-                daemon=True
-            )
-            self.SummaryEngine.start()
-            self.check()
+            if  self.bottomBar.TextBox.get("0.0","end"):
+                self.TextBoxQueueIn.put(self.bottomBar.TextBox.get("1.0","end-1c"))
+                self.SummaryEngine = threading.Thread(
+                    target = TextListener.LLMSummerizer,
+                    args=(self.TextBoxQueueIn,self.TextBoxQueueOut,),
+                    daemon=True
+                )
+                self.SummaryEngine.start()
+                self.check()
+            else:
+                return
 
     def check(self):
         try:
@@ -344,7 +487,7 @@ class RecFrame(ctk.CTkFrame):
                 self.bottomBar.TextBox.delete("0.0","end")
                 self.bottomBar.TextBox.insert("end-1c",SummaryText)
                 self.bottomBar.TextBox.configure(state="disabled")
-                self.BreakCheck = True
+                self.BreakCheck = True 
 
         except queue.Empty:
             pass
@@ -360,25 +503,33 @@ class App(ctk.CTk):
         super().__init__()
 
         self.title("LECRec")
-        self.geometry("1200x700")
+        self.geometry("1300x800")
 
+        
         self.leftFrame_1 = LeftFrame(self,width=250)
         self.leftFrame_1.pack(side="left",padx=10,pady=10,fill='y',expand=False)
 
         self.rightFrame_1 = RightFrame(self,width=250)
         self.rightFrame_1.pack(side="right",padx=10,pady=10,fill='y',expand=False)
 
-        self.textBox = ctk.CTkTextbox(self,width=700,height=450)
-        self.textBox.pack(side="top",padx=10,pady=10,fill="both",expand=True)
-        self.textBox.configure(state="disabled")
+        self.tabview= TabView(self,width=700,height=400)
+        self.tabview.pack(side="top",fill="x")
 
+        self.textBox = self.tabview.getRec()
+
+        global TextBoxValue
+        TextBoxValue = self.tabview.getSave()
 
         self.bottomFrame= BottomFrame(self,self.textBox,width=700,height=115)
-        self.bottomFrame.pack(side="bottom",padx=10,pady=10)
+        self.bottomFrame.pack(side="bottom",padx=10,pady=10,fill="x")
 
         self.recordBar = RecFrame(self,self.bottomFrame,width=700,height=85)
-        self.recordBar.pack(side="top",padx=10,pady=10,fill="both",expand=True)
+        self.recordBar.pack(side="top",padx=10,pady=10,fill="x",expand=True)
+
+        
+
+
 
 app = App()
-app.maxsize(1201,701)
+app.maxsize(1301,701)
 app.mainloop()
