@@ -2,6 +2,7 @@ import customtkinter as ctk
 import threading
 import os
 import TextListener
+import RagLLm
 import queue
 from queue import Queue
 from tkinter import messagebox
@@ -59,7 +60,6 @@ class TabView(ctk.CTkTabview):
         self.Delete.place(x=660,y=375)
         
 
-    
     def getRec(self):
         return self.RecBox
 
@@ -85,10 +85,12 @@ class TabView(ctk.CTkTabview):
         else:
             RecComboBox.configure(values = ["-"]+os.listdir(RecText))
             os.remove(CurrFile)
+            CurrFile = None
             comrecVar.set("SummaryNotes")
 
     def delete(self):
         os.remove(CurrFile)
+        CurrFile = None
         RecComboBox.configure(values = ["-"]+os.listdir(RecText))
         comrecVar.set("SummaryNotes")
         self.SaveBox.configure(state="normal")
@@ -102,17 +104,9 @@ class TabView(ctk.CTkTabview):
             else:
                     self.ChoiceMenu.select = False
         else:
-           
-            self._segmented_button._buttons_dict["SaveView"].configure(text_color="white")
+            self._segmented_button._buttons_dict["SaveView"].configure(text_color="white")    
 
-         
         self.after(350,self.checkTab)
-
-    
-
-
-
-    
 
 class innerLeftFrame(ctk.CTkFrame):
     def __init__(self,parent,**kwargs):
@@ -139,6 +133,7 @@ class innerLeftFrame(ctk.CTkFrame):
             TextBoxValue.configure(state="normal")
             TextBoxValue.delete("0.0","end")
             TextBoxValue.configure(state="disabled")
+            CurrFile = None
         else:
 
             TextBoxValue.configure(state="normal")
@@ -176,8 +171,8 @@ class RightFrame(ctk.CTkFrame):
 
         self.grid_propagate(False)
         self.pack_propagate(False)
-        self.textBox = ctk.CTkTextbox(self,width=220,height=500,state="disabled")
-        self.textBox.pack(side="top",padx=10,pady=10,expand = False)
+        self.textBox = ctk.CTkTextbox(self,width=240,height=500,state="disabled",font=ctk.CTkFont(size=12))
+        self.textBox.pack(side="top",pady=10,expand = False)
 
         self.QueLabel = ctk.CTkLabel(self,width=220,height=5,text="Ask a Question")
         self.QueLabel.pack(side="top",expand = False)
@@ -185,8 +180,52 @@ class RightFrame(ctk.CTkFrame):
         self.chatBox = ctk.CTkTextbox(self,width=220,height=55)
         self.chatBox.pack(side="top",padx=10,pady=10,fill="both",expand = True)
 
-        self.button = ctk.CTkButton(self,width = 200,height=55,text="Submit")
+        self.button = ctk.CTkButton(self,width = 200,height=55,text="Submit",command=self.submit)
         self.button.pack(side="bottom",padx=10,pady=10,fill="x")
+        self.resVal = Queue()
+    
+    def submit(self):
+        if (self.chatBox.get("0.0","end").strip() and CurrFile):
+
+            self.SubmitThread = threading.Thread(
+                    target=RagLLm.encodeQuery,
+                    args= (self.chatBox.get("0.0","end"),
+                        str(CurrFile),
+                        self.resVal),
+                        daemon = True
+                )
+
+            self.SubmitThread.start()
+            self.button.configure(text="Processing..",state="disabled")
+            self.submitAnimation()
+        else:
+
+            messagebox.showinfo("Empty submit Box or No file chosen", "Submit Box is Empty or file not selcted")
+    
+    def submitAnimation(self):
+        try:
+            while True:
+                RecVal = self.resVal.get_nowait()
+                if RecVal == True:
+                    self.button.configure(text="Submit",state="normal")
+                    self.chatBox.delete("0.0","end")
+                    self.SubmitThread.join()
+
+                    return
+                else:
+                    
+                    self.textBox.configure(state="normal")
+                    self.textBox.insert("end-1c",("-"*34)+"\n")
+                    self.textBox.insert("end-1c","[QUESTION]: "+self.chatBox.get("0.0","end")+"\n\n")
+                    self.textBox.insert("end-1c","[ANSWER]: "+RecVal)
+                    self.textBox.insert("end-1c","\n"+("-"*34)+"\n")
+                    self.textBox.see("end")
+                    self.textBox.configure(state="disabled")
+
+        except queue.Empty:
+            pass
+        finally:
+            self.after(10,self.submitAnimation)
         
 
 
@@ -234,6 +273,7 @@ class BottomFrame(ctk.CTkFrame):
                 self.TextBox.configure(state="disabled")
                 self.exit_signal.clear()
                 self.playTime = time.time()
+                self.audioQueue.empty()
             
             if self.Clear != None:
                 self.Clear.place_forget()
@@ -347,6 +387,13 @@ class BottomFrame(ctk.CTkFrame):
                self.audioQueue.task_done()
                if text == 1:
                    self.ENDRECORDING = True
+                   while not self.audioQueue.empty():
+                        try:
+                            self.audioQueue.get_nowait()
+                            self.audioQueue.task_done()  
+                        except queue.Empty:
+                            break
+                   return
                else:
                     self.TextBox.configure(state="normal")
                     self.TextBox.insert("end-1c",text)
@@ -385,6 +432,7 @@ class RecFrame(ctk.CTkFrame):
         self.bottomBar = bottomBar
         self.TextBoxQueueIn = Queue()
         self.TextBoxQueueOut = Queue()
+        self.GetVal = Queue()
         self.BreakCheck = False
         self.TotalPauseTime = 0
         self.CurrPauseTime = 0
@@ -457,20 +505,65 @@ class RecFrame(ctk.CTkFrame):
     
     def Save(self):
             if self.fileName.get():
+
+                self.save.configure(text="Saving..",state="disabled")
                 with open((RecText/self.fileName.get()).with_suffix(".txt"),'w') as file:
                     file.write(self.bottomBar.TextBox.get("1.0","end-1c"))
                 
                 RecComboBox.configure(values = ["-"]+os.listdir(RecText))
-                self.fileName.delete(0,"end")
+                textLength = len(self.bottomBar.TextBox.get("1.0","end-1c"))
+                maxChar = 300
+                chunkSize = 150
+                overLap = 20
+                if (textLength * 1.77 > 5000):
+                    maxChar = 2000
+                    chunkSize = 256
+                    overLap = 50
+                elif (textLength * 1.77 < 5000 and  textLength * 1.77 > 1000 ):
+                    maxChar = 1000
+                    chunkSize = 200
+                    overLap = 40
+                else:
+                    maxChar = 500
+                    chunkSize = 180
+                    overLap = 36
+
+
+                SaveThread = threading.Thread(
+                    target=RagLLm.EncodeContextText,
+                    args=(self.bottomBar.TextBox.get("1.0","end-1c"),
+                                                    maxChar,
+                                                    chunkSize,
+                                                    overLap,
+                                                    self.GetVal,
+                                                    str(RecText/self.fileName.get())+".txt")
+                )
+                SaveThread.start()
+                self.saveAnimation()
+        
             else:
                 messagebox.showinfo("Didnt name File", "Missing Filename")
-
+    def saveAnimation(self):
+        try:
+            while True:
+                RecVal = self.GetVal.get_nowait()
+                if RecVal == True:
+                    messagebox.showinfo("Save", "File Saved")
+                    self.save.configure(text="Save",state="normal")
+                
+                    self.fileName.delete(0,"end")
+                return
+        except queue.Empty:
+            pass
+        finally:
+            self.after(10,self.saveAnimation)
+            
     def SumStart(self):
-        print(self.stateChange)
+        
         if self.bottomBar.isStop\
                 and self.bottomBar.TextBox.get("1.0","end-1c").strip()\
                     and not self.stateChange:
-            print("why?")
+            
             self.sumbum.configure(state="normal")
             self.save.configure(state="normal")
             self.stateChange = True
@@ -483,7 +576,8 @@ class RecFrame(ctk.CTkFrame):
         self.after(100,self.SumStart)
     
     def SummRizer(self):
-        if self.bottomBar.exit_signal.is_set():
+        if self.bottomBar.isStop\
+                and self.bottomBar.TextBox.get("1.0","end-1c").strip():
             
             self.Sequecncing = threading.Thread(
                 target = self.sequencer,
@@ -495,8 +589,10 @@ class RecFrame(ctk.CTkFrame):
 
 
     def sequencer(self):
-        if self.bottomBar.STTEngine.is_alive():
-            self.bottomBar.STTEngine.join()
+
+        if self.bottomBar.STTEngine != None:
+            if self.bottomBar.STTEngine.is_alive():
+                self.bottomBar.STTEngine.join()
     
 
         self.BreakCheck = False
@@ -538,7 +634,7 @@ class App(ctk.CTk):
         super().__init__()
 
         self.title("LECRec")
-        self.geometry("1300x800")
+        self.geometry("1300x700")
 
         
         self.leftFrame_1 = LeftFrame(self,width=250)

@@ -1,7 +1,7 @@
 import os
 import speech_recognition as sr
 import ollama as LLM
-import queue
+
 import threading
 import whisper
 from queue import Queue
@@ -38,7 +38,6 @@ def ReadContext(Text):
             CurrHis = History[-3:]
         else:
             CurrHis = History
-    print(CurrHis)
     if Text.strip():
         prompt=f"""You are a transcription correction assistant for university lectures.
 
@@ -106,9 +105,12 @@ def AudioListener(audioQueue,exitSignal):
     LLMThread.start()
     
     with sr.Microphone() as source:
-        Audio.adjust_for_ambient_noise(source=source,duration=0.4)
+        Audio.adjust_for_ambient_noise(source=source,duration=1.0)
         while not exitSignal.is_set():
                 try:    
+                        
+                             
+
                         if not exitSignal.is_set():  
                             Voice = Audio.listen(source=source,phrase_time_limit=15)
                             AudioText = Audio.recognize_whisper(Voice,model="base")
