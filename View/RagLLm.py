@@ -152,10 +152,42 @@ def encodeQuery(Query, fileName, resVal):
     finally:
         client.close()  # Guarantees storage folder lock is dropped cleanly
         
+def deleteQuery(fileName):
+    client = QdrantClient(path=DB_PATH)
+    print(fileName)
+    response = client.delete(
+        collection_name="TextRAG",
+        points_selector=models.FilterSelector(
+            filter=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="FileName",
+                        match=models.MatchValue(value=fileName)
+                    )
+                ]
+            )
+        ),
+        wait=True
+    )
 
+   # Run this right after your deletion
+    check_result = client.scroll(
+    collection_name="TextRAG",
+    scroll_filter=models.Filter(
+        must=[models.FieldCondition(key="FileName", match=models.MatchValue(value=fileName))]
+    ),
+    limit=1
+    )
+
+    if not check_result[0]:
+        print(" Verified: Qdrant completely unlinked the data. It's safely gone.")
+    else:
+        print("⚠️ Something went wrong, Qdrant can still see it.")
+
+    client.close()
+    return
 
 def prompt(contextText, Query):
-    # Left-flushed string block stops hidden space formatting from breaking token attention
     prompt_str = f"""Context:
 {contextText}
 

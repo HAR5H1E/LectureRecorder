@@ -28,6 +28,7 @@ class TabView(ctk.CTkTabview):
         self.RecBox = None
         self.SaveBox = None
         self.ChoiceMenu = ChoiceMenu
+        self.GetVal = Queue()
         self.repeatisTab=False
         self.repeatisNTab = False
         self.Tabs()
@@ -79,16 +80,84 @@ class TabView(ctk.CTkTabview):
             messagebox.showinfo("NOT Text Available","TextBox Empty")
 
     def save(self):
+        global CurrFile
         if self.SaveBox.get("0.0","end").strip():
             with open(CurrFile,"w") as file:
                 file.write(self.SaveBox.get("0.0","end"))
+            
         else:
             RecComboBox.configure(values = ["-"]+os.listdir(RecText))
             os.remove(CurrFile)
             CurrFile = None
             comrecVar.set("SummaryNotes")
+    
+    def saveSequencer(self):
+        global CurrFile 
+        DelThread = threading.Thread(
+            target=RagLLm.deleteQuery,
+            args=(str(CurrFile),),
+            daemon=True
+        )
+        DelThread.start()
+        time.sleep(0.5)
+        if DelThread.is_alive():
+            DelThread.join()
+        
+        textLength = len(self.SaveBox.get("0.0","end"))
+        maxChar = 300
+        chunkSize = 150
+        overLap = 20
+        if (textLength * 1.77 > 5000):
+                maxChar = 2000
+                chunkSize = 256
+                overLap = 50
+        elif (textLength * 1.77 < 5000 and  textLength * 1.77 > 1000 ):
+                maxChar = 1000
+                chunkSize = 200
+                overLap = 40
+        else:
+                maxChar = 500
+                chunkSize = 180
+                overLap = 36
+
+
+        SaveThread = threading.Thread(
+            target=RagLLm.EncodeContextText,
+            args=(self.SaveBox.get("0.0","end"),
+                        maxChar,
+                        chunkSize,
+                        overLap,
+                        self.GetVal,
+                        str(CurrFile),)
+        )
+        SaveThread.start()
+
+    def saveAnimation(self):
+        try:
+            while True:
+                RecVal = self.GetVal.get_nowait()
+                if RecVal == True:
+                    messagebox.showinfo("Save", "File Saved")
+                    self.save.configure(text="Save",state="normal")
+                    self.fileName.delete(0,"end")
+                    self.stopSave = True
+                return
+        except queue.Empty:
+            pass
+        finally:
+
+            if not self.stopSave:
+                self.after(10,self.saveAnimation)
 
     def delete(self):
+        global CurrFile
+        print(CurrFile)
+        DelThread = threading.Thread(
+            target=RagLLm.deleteQuery,
+            args=(str(CurrFile),),
+            daemon=True
+        )
+        DelThread.start()
         os.remove(CurrFile)
         CurrFile = None
         RecComboBox.configure(values = ["-"]+os.listdir(RecText))
@@ -96,6 +165,7 @@ class TabView(ctk.CTkTabview):
         self.SaveBox.configure(state="normal")
         self.SaveBox.delete("0.0","end")
         self.SaveBox.configure(state="disabled")
+
 
     def checkTab(self):
         if self.ChoiceMenu.select:
@@ -171,6 +241,7 @@ class RightFrame(ctk.CTkFrame):
 
         self.grid_propagate(False)
         self.pack_propagate(False)
+        self.stopAnimation = False
         self.textBox = ctk.CTkTextbox(self,width=240,height=500,state="disabled",font=ctk.CTkFont(size=12))
         self.textBox.pack(side="top",pady=10,expand = False)
 
@@ -197,6 +268,7 @@ class RightFrame(ctk.CTkFrame):
 
             self.SubmitThread.start()
             self.button.configure(text="Processing..",state="disabled")
+            self.stopAnimation = False
             self.submitAnimation()
         else:
 
@@ -210,7 +282,7 @@ class RightFrame(ctk.CTkFrame):
                     self.button.configure(text="Submit",state="normal")
                     self.chatBox.delete("0.0","end")
                     self.SubmitThread.join()
-
+                    self.stopAnimation = True
                     return
                 else:
                     
@@ -225,10 +297,9 @@ class RightFrame(ctk.CTkFrame):
         except queue.Empty:
             pass
         finally:
-            self.after(10,self.submitAnimation)
+            if not self.stopAnimation :
+                self.after(10,self.submitAnimation)
         
-
-
 
 class BottomFrame(ctk.CTkFrame):
 
@@ -244,6 +315,8 @@ class BottomFrame(ctk.CTkFrame):
         self.playOn = False
         self.isPause = False
         self.isStop = True
+        self.stopAni = False
+        self.PauseAni = False
         self.canSum = False
         self.playTime = 0
         self.CurrPauseTime = 0
@@ -280,6 +353,8 @@ class BottomFrame(ctk.CTkFrame):
 
             self.playOn = True
             self.isStop = False
+            self.stopAni = False
+            self.pauseAni = False
             self.canSum = False
             self.ENDRECORDING = False
             self.STTEngine = threading.Thread(
@@ -357,16 +432,18 @@ class BottomFrame(ctk.CTkFrame):
                 self.Edit.place(x=560,y=375)
                 self.Clear.place(x=635,y=375)
                 self.canSum = True
+                self.stopAni = True
                 return 
 
             self.stop.configure(text="Processing Final Audio...", state="disabled",fg_color="darkred")
             self.play.configure(state="disabled")
             self.pause.configure(state ="disabled")
 
+            
             self.after(10,self.StopAnimation)
 
     def PauseAnimation(self):
-
+        print(str(self.pauseAni)+" "+str(self.ENDRECORDING))
         if  self.ENDRECORDING :
                 self.pause.configure(text="Play To Unpause...",state="disabled",fg_color="darkred")
                 self.play.configure(state="normal")   
@@ -375,9 +452,8 @@ class BottomFrame(ctk.CTkFrame):
 
         self.pause.configure(text="Pausing Recording", state="disabled")
         self.pause.configure(fg_color="darkred")
-
         self.stop.configure(state="disabled")
-
+        
         self.after(10,self.PauseAnimation)
         
     def check(self):
@@ -387,12 +463,15 @@ class BottomFrame(ctk.CTkFrame):
                self.audioQueue.task_done()
                if text == 1:
                    self.ENDRECORDING = True
+
+                   """
                    while not self.audioQueue.empty():
                         try:
                             self.audioQueue.get_nowait()
                             self.audioQueue.task_done()  
                         except queue.Empty:
                             break
+                    """
                    return
                else:
                     self.TextBox.configure(state="normal")
@@ -402,7 +481,8 @@ class BottomFrame(ctk.CTkFrame):
         except queue.Empty:
            pass
         finally:
-            self.after(10,self.check)
+                 
+                self.after(10,self.check)
 
 
     def Buttons(self):
@@ -440,6 +520,7 @@ class RecFrame(ctk.CTkFrame):
         self.fileName = None
         self.Sec = None
         self.Mil = None
+        self.stopSave = False
         self.inFrame()
     
     def inFrame(self):
@@ -543,6 +624,7 @@ class RecFrame(ctk.CTkFrame):
         
             else:
                 messagebox.showinfo("Didnt name File", "Missing Filename")
+    
     def saveAnimation(self):
         try:
             while True:
@@ -550,13 +632,15 @@ class RecFrame(ctk.CTkFrame):
                 if RecVal == True:
                     messagebox.showinfo("Save", "File Saved")
                     self.save.configure(text="Save",state="normal")
-                
                     self.fileName.delete(0,"end")
-                return
+                    self.stopSave = True
+                    break
         except queue.Empty:
             pass
         finally:
-            self.after(10,self.saveAnimation)
+
+            if not self.stopSave:
+                self.after(10,self.saveAnimation)
             
     def SumStart(self):
         
