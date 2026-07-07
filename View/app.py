@@ -95,11 +95,7 @@ class TabView(ctk.CTkTabview):
             self.saveAnimation()
             
         else:
-            RecComboBox.configure(values = ["-"]+os.listdir(RecText))
-            os.remove(CurrFile)
-            CurrFile = None
-            comrecVar.set("SummaryNotes")
-    
+            self.delete()
     def saveSequencer(self):
         global CurrFile 
         DelThread = threading.Thread(
@@ -191,6 +187,8 @@ class innerLeftFrame(ctk.CTkFrame):
         global TextBoxValue,comrecVar,RecText,RecComboBox
         self.grid_propagate(False)
         self.grid_rowconfigure(0,weight=0)
+        self.grid_rowconfigure(1,weight=0)
+        self.grid_rowconfigure(2,weight=1)
         comrecVar=self.ComboRecVar = ctk.StringVar(value="SummaryNotes")
         self.Combolist = ["-"]
         self.textBox = TextBoxValue
@@ -201,7 +199,18 @@ class innerLeftFrame(ctk.CTkFrame):
                                                     variable=self.ComboRecVar,
                                                     command = self.selectOption)
         self.RecBox.grid(row=0,column=0,padx=20,pady=20,sticky="ne")
+
+        self.HighlightText = ctk.CTkLabel(self,text="HighlightText",width=180)
+        self.HighlightText.grid(row=1,column=0,sticky="nsew")
+
+        self.Highlight = ctk.CTkTextbox(self,
+                                        width=180,state="normal")
+        self.Highlight.grid(row=2,column=0,padx=20,pady=20,sticky="nsew")
+        
         self.select = False
+    
+    def getText(self):
+        return self.Highlight
 
     def selectOption(self,choice):
         global CurrFile
@@ -291,8 +300,7 @@ class RightFrame(ctk.CTkFrame):
                     self.SubmitThread.join()
                     self.stopAnimation = True
                     return
-                else:
-                    
+                else: 
                     self.textBox.configure(state="normal")
                     self.textBox.insert("end-1c",("-"*34)+"\n")
                     self.textBox.insert("end-1c","[QUESTION]: "+self.chatBox.get("0.0","end")+"\n\n")
@@ -300,7 +308,6 @@ class RightFrame(ctk.CTkFrame):
                     self.textBox.insert("end-1c","\n"+("-"*34)+"\n")
                     self.textBox.see("end")
                     self.textBox.configure(state="disabled")
-
         except queue.Empty:
             pass
         finally:
@@ -514,9 +521,10 @@ class BottomFrame(ctk.CTkFrame):
                                        hover_color="black",command=self.edit)
 
 class RecFrame(ctk.CTkFrame):
-    def __init__(self,parent,bottomBar,**kwargs):
+    def __init__(self,parent,bottomBar,HighText,**kwargs):
         super().__init__(parent,**kwargs)
         self.bottomBar = bottomBar
+        self.HighLight = HighText
         self.TextBoxQueueIn = Queue()
         self.TextBoxQueueOut = Queue()
         self.GetVal = Queue()
@@ -593,7 +601,7 @@ class RecFrame(ctk.CTkFrame):
     
     def Save(self):
             if self.fileName.get():
-
+                self.stopSave = False
                 self.save.configure(text="Saving..",state="disabled")
                 with open((RecText/self.fileName.get()).with_suffix(".txt"),'w') as file:
                     file.write(self.bottomBar.TextBox.get("1.0","end-1c"))
@@ -693,7 +701,10 @@ class RecFrame(ctk.CTkFrame):
                 self.TextBoxQueueIn.put(self.bottomBar.TextBox.get("1.0","end-1c"))
                 self.SummaryEngine = threading.Thread(
                     target = TextListener.LLMSummerizer,
-                    args=(self.TextBoxQueueIn,self.TextBoxQueueOut,),
+                    args=(self.TextBoxQueueIn,
+                          self.TextBoxQueueOut,
+                          self.HighLight.get("0.0","end"),
+                          ),
                     daemon=True
                 )
                 self.SummaryEngine.start()
@@ -745,7 +756,7 @@ class App(ctk.CTk):
         self.bottomFrame= BottomFrame(self,self.textBox,width=700,height=115)
         self.bottomFrame.pack(side="bottom",padx=10,pady=10,fill="x")
 
-        self.recordBar = RecFrame(self,self.bottomFrame,width=700,height=85)
+        self.recordBar = RecFrame(self,self.bottomFrame,self.leftFrame_1.innerFrame.getText(),width=700,height=85)
         self.recordBar.pack(side="top",padx=10,pady=10,fill="x",expand=True)
 
         

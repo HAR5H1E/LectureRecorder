@@ -136,7 +136,7 @@ def AudioListener(audioQueue,exitSignal):
     print("I am Stopin?")
 
 
-def LLMSummerizer(TextBoxQueueIn,TextBoxQueueout):
+def LLMSummerizer(TextBoxQueueIn,TextBoxQueueout,HighLightedText):
         FinalText = TextBoxQueueIn.get()
         if FinalText.strip():
             ParentDir = Path(__file__).resolve().parent
@@ -147,10 +147,14 @@ def LLMSummerizer(TextBoxQueueIn,TextBoxQueueout):
 
             prompt = f"""You are a Markdown document formatter for university lecture notes.
 
+            ## ADDITIONAL CONTEXT (HIGHLIGHTED TEXT):
+            The user has highlighted the following specific portion of the lecture/notes for extra emphasis or focus(if its an empty string ignore it):
+            "{HighLightedText}"
+
             ## STEP 1 - INFER CONTEXT:
             Before formatting, read the entire transcript and identify:
             - What subject/field is this lecture about?
-            - What are the key topics covered?
+            - What are the key topics covered? (Pay special attention to how they relate to the **HIGHLIGHTED TEXT**).
             - Are there assignments, deadlines, or grading breakdowns?
             - Are there any [UNCLEAR] or [CORRECTED] flags from the previous pass?
             - If there are any words that seem to not be inline with the context of the previous part of the test or later part remove it 
@@ -161,12 +165,13 @@ def LLMSummerizer(TextBoxQueueIn,TextBoxQueueout):
             - # for main title
             - ## for major sections  
             - ### for subsections
-            - **bold** for deadlines, key terms, percentages
+            - **bold** for deadlines, key terms, percentages, and critical elements emphasized in the **HIGHLIGHTED TEXT**
             - Regular bullet lists only
             - Code blocks ONLY for actual code or commands
 
             ## STEP 3 - VALIDATE:
             Before outputting, check:
+            - Did you properly account for and integrate the context provided by the **HIGHLIGHTED TEXT**?
             - Do all percentage breakdowns add up to 100%? 
             If not add **[VERIFY - incomplete breakdown]**
             - Are all [UNCLEAR] flags preserved and not guessed?
@@ -185,8 +190,6 @@ def LLMSummerizer(TextBoxQueueIn,TextBoxQueueout):
             {FinalText}
 
             ---
-
-        
 
             Return only the corrected transcript, no explanation.
             """
