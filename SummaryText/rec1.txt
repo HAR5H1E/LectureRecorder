@@ -77,9 +77,12 @@ support the conclusion that the Earth is not flat and that alternative models ar
 accurately explain observed natural phenomena.
 
 ##VALUE
-the value of this tes is 1
+the value of this test is 2
+
 
 Bibliography
 Sherwood, B. (2026). Web VPython. [online] Glowscript.org. Available at:
 https://www.glowscript.org/#/user/Bruce_Sherwood/folder/Pub/program/FlatEarth [Accessed 14
 Feb. 2026].
+
+

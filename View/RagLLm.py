@@ -150,7 +150,7 @@ def encodeQuery(Query, fileName, resVal):
         print(f"Error in query thread: {e}")
        
     finally:
-        client.close()  # Guarantees storage folder lock is dropped cleanly
+        client.close()
         
 def deleteQuery(fileName):
     client = QdrantClient(path=DB_PATH)
@@ -169,20 +169,6 @@ def deleteQuery(fileName):
         ),
         wait=True
     )
-
-   # Run this right after your deletion
-    check_result = client.scroll(
-    collection_name="TextRAG",
-    scroll_filter=models.Filter(
-        must=[models.FieldCondition(key="FileName", match=models.MatchValue(value=fileName))]
-    ),
-    limit=1
-    )
-
-    if not check_result[0]:
-        print(" Verified: Qdrant completely unlinked the data. It's safely gone.")
-    else:
-        print("⚠️ Something went wrong, Qdrant can still see it.")
 
     client.close()
     return

@@ -31,6 +31,7 @@ class TabView(ctk.CTkTabview):
         self.GetVal = Queue()
         self.repeatisTab=False
         self.repeatisNTab = False
+        self.stopSave = False
         self.Tabs()
         self.checkTab()
     
@@ -81,9 +82,17 @@ class TabView(ctk.CTkTabview):
 
     def save(self):
         global CurrFile
+        self.stopSave = False
         if self.SaveBox.get("0.0","end").strip():
             with open(CurrFile,"w") as file:
                 file.write(self.SaveBox.get("0.0","end"))
+            
+            sequencerThread = threading.Thread(
+                target=self.saveSequencer,
+                daemon = True
+            )
+            sequencerThread.start()
+            self.saveAnimation()
             
         else:
             RecComboBox.configure(values = ["-"]+os.listdir(RecText))
@@ -138,10 +147,8 @@ class TabView(ctk.CTkTabview):
                 RecVal = self.GetVal.get_nowait()
                 if RecVal == True:
                     messagebox.showinfo("Save", "File Saved")
-                    self.save.configure(text="Save",state="normal")
-                    self.fileName.delete(0,"end")
                     self.stopSave = True
-                return
+                    break
         except queue.Empty:
             pass
         finally:
