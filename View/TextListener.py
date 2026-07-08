@@ -108,9 +108,6 @@ def AudioListener(audioQueue,exitSignal):
         Audio.adjust_for_ambient_noise(source=source,duration=1.0)
         while not exitSignal.is_set():
                 try:    
-                        
-                             
-
                         if not exitSignal.is_set():  
                             Voice = Audio.listen(source=source,phrase_time_limit=15)
                             AudioText = Audio.recognize_whisper(Voice,model="base")
@@ -130,11 +127,8 @@ def AudioListener(audioQueue,exitSignal):
 
 
     smoothAudio.put(1)
-    count = 0
-    
+    count = 0 
     stopEvent.set()
-    print("I am Stopin?")
-
 
 def LLMSummerizer(TextBoxQueueIn,TextBoxQueueout,HighLightedText):
         FinalText = TextBoxQueueIn.get()

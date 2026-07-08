@@ -529,6 +529,7 @@ class RecFrame(ctk.CTkFrame):
         self.TextBoxQueueOut = Queue()
         self.GetVal = Queue()
         self.BreakCheck = False
+        self.hasSumStart = False
         self.TotalPauseTime = 0
         self.CurrPauseTime = 0
         self.Minutes = 0
@@ -658,7 +659,6 @@ class RecFrame(ctk.CTkFrame):
                 self.after(10,self.saveAnimation)
             
     def SumStart(self):
-        
         if self.bottomBar.isStop\
                 and self.bottomBar.TextBox.get("1.0","end-1c").strip()\
                     and not self.stateChange:
@@ -672,7 +672,8 @@ class RecFrame(ctk.CTkFrame):
             self.sumbum.configure(state="disabled")
             self.save.configure(state="disabled")
             self.stateChange = False
-        self.after(100,self.SumStart)
+        if  not self.hasSumStart:
+            self.after(100,self.SumStart)
     
     def SummRizer(self):
         if self.bottomBar.isStop\
@@ -707,7 +708,11 @@ class RecFrame(ctk.CTkFrame):
                           ),
                     daemon=True
                 )
+                
                 self.SummaryEngine.start()
+                self.hasSumStart = True
+                self.sumbum.configure(state="disabled")
+                self.save.configure(state="disabled")
                 self.check()
             else:
                 return
@@ -720,7 +725,13 @@ class RecFrame(ctk.CTkFrame):
                 self.bottomBar.TextBox.delete("0.0","end")
                 self.bottomBar.TextBox.insert("end-1c",SummaryText)
                 self.bottomBar.TextBox.configure(state="disabled")
-                self.BreakCheck = True 
+                self.sumbum.configure(state="normal")
+                self.save.configure(state="normal")
+                self.BreakCheck = True
+                self.hasSumStart = False
+                self.SumStart()
+                break
+
 
         except queue.Empty:
             pass
@@ -729,6 +740,7 @@ class RecFrame(ctk.CTkFrame):
 
             if not self.BreakCheck:
                 self.after(10,self.check)
+                
 
 
 class App(ctk.CTk):
