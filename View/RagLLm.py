@@ -90,8 +90,6 @@ def EncodeContextText(textDocument, maxCharacters, chunkSize, overlap, GetValue,
 
 def encodeQuery(Query, fileName, resVal):
     Build() 
-    Val = TextBlob(Query)
-    Query = str(Val.correct())
     global model, bm25Model
 
     print(DB_PATH)
@@ -138,11 +136,13 @@ def encodeQuery(Query, fileName, resVal):
 
         ContextText = ""
         for result in results.points:
+            
+            print(result.payload.get("ParentChunk"))
             if result.score > 0.5:
                 print(result.payload.get("FileName"))
                 ContextText += result.payload.get("ParentChunk", "") + "\n\n"
 
-        
+        print(ContextText)
        
         resVal.put(prompt(ContextText, Query))
         resVal.put(True)
