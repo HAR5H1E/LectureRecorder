@@ -42,4 +42,4 @@ LECRec is a desktop app for recording lectures, generating notes and summaries, 
 
 ## Status
 
-🚧 In active development — feature set and UI subject to change.
+In active development — feature set and UI subject to change.
