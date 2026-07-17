@@ -136,7 +136,7 @@ def encodeQuery(Query, fileName, resVal):
 
         ContextText = ""
         for result in results.points:
-            
+
             print(result.payload.get("ParentChunk"))
             if result.score > 0.5:
                 print(result.payload.get("FileName"))
@@ -180,6 +180,7 @@ def prompt(contextText, Query):
 Question: {Query}
 
 Task: Answer the question using only the context above. Be extremely brief (1-2 sentences). Do not explain your reasoning.
+If the the question dosent seem to align with the context respond with "I don't have that Information"
 
 Answer:"""
 

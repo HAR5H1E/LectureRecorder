@@ -226,15 +226,5 @@ def main():
                     file.write(FinalTextOutput)
 
                 print("\nExit")
-            
-                """
-                with open("RecordingText/REC3.txt",'r',encoding="utf-8") as file:
-                        text = file.read()
-
-                m = FinalText(text)
-                with open("test.txt",'w',encoding="utf-8") as file:
-                        file.write(m)
-
-                """         
 
 main() 

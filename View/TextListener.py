@@ -16,18 +16,24 @@ History = []
 count = 1
 def startLLM(stopEvent,audioQueue):
     global History,count
-    while not stopEvent.is_set():
-        text = smoothAudio.get()
-        smoothAudio.task_done()
-        if text == 1:
-             break
-        smoothText = ReadContext(text)
-        if smoothText is not None:
-            audioQueue.put(smoothText)
-            History.append({f"AudioChunk " : count, "TextRecording":smoothText})
-            count+=1
-    audioQueue.put(1)
-    History = []
+    try:
+        while not stopEvent.is_set():
+            text = smoothAudio.get()
+            smoothAudio.task_done()
+            if text == 1:
+                break
+            smoothText = ReadContext(text)
+            if smoothText is not None:
+                audioQueue.put(smoothText)
+                History.append({f"AudioChunk " : count, "TextRecording":smoothText})
+                count+=1
+        
+        audioQueue.put(1)
+        History = []
+    except Exception as e:
+        audioQueue.put(1)
+        History = []
+
 def ReadContext(Text):
     global History
     CurrHis = []
@@ -104,31 +110,35 @@ def AudioListener(audioQueue,exitSignal):
     )
     LLMThread.start()
     
-    with sr.Microphone() as source:
-        Audio.adjust_for_ambient_noise(source=source,duration=1.0)
-        while not exitSignal.is_set():
-                try:    
-                        if not exitSignal.is_set():  
-                            Voice = Audio.listen(source=source,phrase_time_limit=15)
-                            AudioText = Audio.recognize_whisper(Voice,model="base")
-                            smoothAudio.put(AudioText)  
-                        else:
-                            smoothAudio.put(1)
-                            stopEvent.set()
+    try:
+        with sr.Microphone() as source:
+            Audio.adjust_for_ambient_noise(source=source,duration=1.0)
+            while not exitSignal.is_set():
+                    try:    
+                            if not exitSignal.is_set():  
+                                Voice = Audio.listen(source=source,phrase_time_limit=15)
+                                AudioText = Audio.recognize_whisper(Voice,model="base")
+                                smoothAudio.put(AudioText)  
+                            else:
+                                smoothAudio.put(1)
+                                stopEvent.set()
 
-
-
-                except sr.RequestError:
-                    pass
-                except sr.UnknownValueError:
-                    pass
-                except sr.WaitTimeoutError:
-                     pass
-
+                    except sr.RequestError:
+                        pass
+                    except sr.UnknownValueError:
+                        pass
+                    except sr.WaitTimeoutError:
+                        pass
+    except Exception as e:
+        smoothAudio.put(1)
+        count = 0 
+        stopEvent.set()
+        return
 
     smoothAudio.put(1)
     count = 0 
     stopEvent.set()
+    return
 
 def LLMSummerizer(TextBoxQueueIn,TextBoxQueueout,HighLightedText):
         FinalText = TextBoxQueueIn.get()
@@ -199,14 +209,18 @@ def LLMSummerizer(TextBoxQueueIn,TextBoxQueueout,HighLightedText):
                     }
                 )
             except Exception as e:
-                response = client.interactions.create(
-                    model = "gemini-2.5-flash",
-                    input = prompt,
-                    store=False,
-                    generation_config={
-                        "temperature":0
-                    }
-                )
+                try:
+                    response = client.interactions.create(
+                        model = "gemini-2.5-flash",
+                        input = prompt,
+                        store=False,
+                        generation_config={
+                            "temperature":0
+                        }
+                    )
+                except Exception as e:
+                    TextBoxQueueout.put("SYS FAIL TRY AGAIN")
+                    return 
 
             print("Sending Response")
             TextBoxQueueout.put(response.output_text)
