@@ -1,13 +1,19 @@
+import os
+from pathlib import Path
+ParentDir = Path(__file__).resolve().parent
+scriptDir = ParentDir.parent
+print(scriptDir)
+os.environ["FASTEMBED_CACHE_PATH"] = str(scriptDir / "FastEmbedCache")
+print("FASTEMBED_CACHE_PATH set to:", os.environ["FASTEMBED_CACHE_PATH"])
 import hashlib
 from semantic_text_splitter import MarkdownSplitter
 from qdrant_client import QdrantClient, models
 from qdrant_client.http.models import PointStruct, Document
 from textblob import TextBlob
-from pathlib import Path
 import ollama as LLM
+import uuid
+import traceback
 
-ParentDir = Path(__file__).resolve().parent
-scriptDir = ParentDir.parent
 
 
 DB_PATH = str(scriptDir / "DBStorage")
@@ -58,7 +64,7 @@ def EncodeContextText(textDocument, maxCharacters, chunkSize, overlap, GetValue,
 
                 print("oooh encoding...")
                 point = PointStruct(
-                    id=hashlib.md5(child.encode("utf-8")).hexdigest(),
+                    id=str(uuid.uuid5(uuid.NAMESPACE_DNS, child)),
                     payload={
                         "TextChunk": child,
                         "ParentChunk": ParentVal,
@@ -137,18 +143,19 @@ def encodeQuery(Query, fileName, resVal):
         ContextText = ""
         for result in results.points:
 
-            print(result.payload.get("ParentChunk"))
+            print(result)
             if result.score > 0.5:
-                print(result.payload.get("FileName"))
                 ContextText += result.payload.get("ParentChunk", "") + "\n\n"
 
         print(ContextText)
        
         resVal.put(prompt(ContextText, Query))
+        
         resVal.put(True)
     except Exception as e:
         print(f"Error in query thread: {e}")
-       
+        traceback.print_exc()
+        resVal.put(False)
     finally:
         client.close()
         

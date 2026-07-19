@@ -4,6 +4,7 @@ import ollama as LLM
 
 import threading
 import whisper
+import queue
 from queue import Queue
 from google import genai
 from pathlib import Path
@@ -27,12 +28,17 @@ def startLLM(stopEvent,audioQueue):
                 audioQueue.put(smoothText)
                 History.append({f"AudioChunk " : count, "TextRecording":smoothText})
                 count+=1
-        
-        audioQueue.put(1)
         History = []
     except Exception as e:
-        audioQueue.put(1)
-        History = []
+        pass
+    finally:
+        while not smoothAudio.empty():
+            try:
+                smoothAudio.get_nowait()
+                smoothAudio.task_done()
+                print("EMPTYING Smmoth")
+            except queue.Empty:
+                break
 
 def ReadContext(Text):
     global History
@@ -118,10 +124,10 @@ def AudioListener(audioQueue,exitSignal):
                             if not exitSignal.is_set():  
                                 Voice = Audio.listen(source=source,phrase_time_limit=15)
                                 AudioText = Audio.recognize_whisper(Voice,model="base")
-                                smoothAudio.put(AudioText)  
-                            else:
-                                smoothAudio.put(1)
-                                stopEvent.set()
+                                if AudioText.strip():
+                                    print(AudioText)
+                                    smoothAudio.put(AudioText)
+
 
                     except sr.RequestError:
                         pass
@@ -130,14 +136,18 @@ def AudioListener(audioQueue,exitSignal):
                     except sr.WaitTimeoutError:
                         pass
     except Exception as e:
-        smoothAudio.put(1)
         count = 0 
+        smoothAudio.put(1)
         stopEvent.set()
+        LLMThread.join()
+        audioQueue.put(1)
         return
-
-    smoothAudio.put(1)
+    
     count = 0 
+    smoothAudio.put(1)
     stopEvent.set()
+    LLMThread.join()
+    audioQueue.put(1)
     return
 
 def LLMSummerizer(TextBoxQueueIn,TextBoxQueueout,HighLightedText):

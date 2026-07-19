@@ -8,6 +8,7 @@ from queue import Queue
 from tkinter import messagebox
 from pathlib import Path
 import time
+import pymupdf
 
 TextBoxValue = None
 saveButton = None
@@ -188,7 +189,9 @@ class innerLeftFrame(ctk.CTkFrame):
         self.grid_propagate(False)
         self.grid_rowconfigure(0,weight=0)
         self.grid_rowconfigure(1,weight=0)
-        self.grid_rowconfigure(2,weight=1)
+        self.grid_rowconfigure(2,weight=0)
+        self.grid_rowconfigure(3,weight=0)
+        
         comrecVar=self.ComboRecVar = ctk.StringVar(value="SummaryNotes")
         self.Combolist = ["-"]
         self.textBox = TextBoxValue
@@ -206,8 +209,22 @@ class innerLeftFrame(ctk.CTkFrame):
         self.Highlight = ctk.CTkTextbox(self,
                                         width=180,state="normal")
         self.Highlight.grid(row=2,column=0,padx=20,pady=20,sticky="nsew")
-        
+
+        self.SavePdfButton = ctk.CTkButton(self,text="SAVE AS PDF",command=self.savePDF,state="disabled")
+        self.SavePdfButton.grid(row=3,column=0,padx=20,pady=20,sticky="nsew")
         self.select = False
+    
+    def savePDF(self):
+        global CurrFile
+        
+        md_doc = pymupdf.open(CurrFile)
+        DeskPath = Path.home() / "Desktop"
+        newFolder = DeskPath / "PDFLECREC"
+        newFolder.mkdir(parents=True, exist_ok=True)
+
+        original_name = Path(CurrFile).stem
+        output_path = newFolder / f"{original_name}.pdf"
+        md_doc.ez_save(output_path)
     
     def getText(self):
         return self.Highlight
@@ -219,6 +236,7 @@ class innerLeftFrame(ctk.CTkFrame):
             TextBoxValue.configure(state="normal")
             TextBoxValue.delete("0.0","end")
             TextBoxValue.configure(state="disabled")
+            self.SavePdfButton.configure(state="disabled")
             CurrFile = None
         else:
 
@@ -230,6 +248,7 @@ class innerLeftFrame(ctk.CTkFrame):
                 TextBoxValue.configure(state="normal")
                 TextBoxValue.insert("0.0",TEXT)
                 TextBoxValue.configure(state="disabled")
+            self.SavePdfButton.configure(state="normal")
             self.select = True
 
             
@@ -300,6 +319,15 @@ class RightFrame(ctk.CTkFrame):
                     self.SubmitThread.join()
                     self.stopAnimation = True
                     return
+                elif RecVal == False:
+                    self.button.configure(text="Submit",state="normal")
+                    self.textBox.insert("end-1c",("-"*34)+"\n")
+                    self.textBox.insert("end-1c","[ERROR]: "+"Application Failed Please Restart App"+"\n\n")
+                    self.textBox.insert("end-1c","\n"+("-"*34)+"\n")
+                    self.chatBox.delete("0.0","end")
+                    self.SubmitThread.join()
+                    self.stopAnimation = True
+                    return
                 else: 
                     self.textBox.configure(state="normal")
                     self.textBox.insert("end-1c",("-"*34)+"\n")
@@ -360,7 +388,7 @@ class BottomFrame(ctk.CTkFrame):
                 self.TextBox.configure(state="disabled")
                 self.exit_signal.clear()
                 self.playTime = time.time()
-                self.audioQueue.empty()
+                
             
             if self.Clear != None:
                 self.Clear.place_forget()
@@ -457,7 +485,6 @@ class BottomFrame(ctk.CTkFrame):
             self.after(10,self.StopAnimation)
 
     def PauseAnimation(self):
-        print(str(self.pauseAni)+" "+str(self.ENDRECORDING))
         if  self.ENDRECORDING :
                 self.pause.configure(text="Play To Unpause...",state="disabled",fg_color="darkred")
                 self.play.configure(state="normal")   
@@ -474,18 +501,17 @@ class BottomFrame(ctk.CTkFrame):
         try:
            while True:
                text = self.audioQueue.get_nowait()
+               print(text)
                self.audioQueue.task_done()
                if text == 1:
                    self.ENDRECORDING = True
-
-                   """
                    while not self.audioQueue.empty():
                         try:
                             self.audioQueue.get_nowait()
-                            self.audioQueue.task_done()  
+                            self.audioQueue.task_done() 
+                            print("EMPTYING AUDIO") 
                         except queue.Empty:
                             break
-                    """
                    return
                else:
                     self.TextBox.configure(state="normal")
@@ -604,7 +630,7 @@ class RecFrame(ctk.CTkFrame):
             if self.fileName.get():
                 self.stopSave = False
                 self.save.configure(text="Saving..",state="disabled")
-                with open((RecText/self.fileName.get()).with_suffix(".txt"),'w') as file:
+                with open((RecText/self.fileName.get()).with_suffix(".md"),'w') as file:
                     file.write(self.bottomBar.TextBox.get("1.0","end-1c"))
                 
                 RecComboBox.configure(values = ["-"]+os.listdir(RecText))
@@ -633,7 +659,7 @@ class RecFrame(ctk.CTkFrame):
                                                     chunkSize,
                                                     overLap,
                                                     self.GetVal,
-                                                    str(RecText/self.fileName.get())+".txt")
+                                                    str(RecText/self.fileName.get())+".md")
                 )
                 SaveThread.start()
                 self.saveAnimation()
