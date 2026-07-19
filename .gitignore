@@ -3,3 +3,7 @@
 
 #cache Files
 FastEmbedCache/
+View/__pycache__
+
+#VecDB
+DBStorage/
