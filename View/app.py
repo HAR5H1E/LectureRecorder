@@ -155,20 +155,20 @@ class TabView(ctk.CTkTabview):
 
     def delete(self):
         global CurrFile
-        print(CurrFile)
-        DelThread = threading.Thread(
-            target=RagLLm.deleteQuery,
-            args=(str(CurrFile),),
-            daemon=True
-        )
-        DelThread.start()
-        os.remove(CurrFile)
-        CurrFile = None
-        RecComboBox.configure(values = ["-"]+os.listdir(RecText))
-        comrecVar.set("SummaryNotes")
-        self.SaveBox.configure(state="normal")
-        self.SaveBox.delete("0.0","end")
-        self.SaveBox.configure(state="disabled")
+        if CurrFile != None:
+            DelThread = threading.Thread(
+                target=RagLLm.deleteQuery,
+                args=(str(CurrFile),),
+                daemon=True
+            )
+            DelThread.start()
+            os.remove(CurrFile)
+            CurrFile = None
+            RecComboBox.configure(values = ["-"]+os.listdir(RecText))
+            comrecVar.set("SummaryNotes")
+            self.SaveBox.configure(state="normal")
+            self.SaveBox.delete("0.0","end")
+            self.SaveBox.configure(state="disabled")
 
 
     def checkTab(self):
