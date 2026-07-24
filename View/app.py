@@ -686,7 +686,7 @@ class RecFrame(ctk.CTkFrame):
             
     def SumStart(self):
         if self.bottomBar.isStop\
-                and self.bottomBar.TextBox.get("1.0","end-1c").strip()\
+                and len(self.bottomBar.TextBox.get("1.0","end-1c").strip())>150\
                     and not self.stateChange:
             
             self.sumbum.configure(state="normal")
@@ -694,7 +694,7 @@ class RecFrame(ctk.CTkFrame):
             self.stateChange = True
             
         elif self.bottomBar.isStop\
-                and not self.bottomBar.TextBox.get("1.0","end-1c").strip():
+                and not len(self.bottomBar.TextBox.get("1.0","end-1c").strip())>150:
             self.sumbum.configure(state="disabled")
             self.save.configure(state="disabled")
             self.stateChange = False

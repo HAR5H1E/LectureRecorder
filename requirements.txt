@@ -1,10 +1,10 @@
 customtkinter==5.2.2
-language_tool_python==3.4.0
 ollama==0.6.2
 openai_whisper==20250625
 protobuf==7.35.1
+pymupdf==1.28.0
 python-dotenv==1.2.2
 qdrant_client==1.18.0
 semantic_text_splitter==0.32.0
 speechrecognition==3.17.0
-textblob==0.20.0
+textblob==0.20.1
